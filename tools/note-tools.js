@@ -1,5 +1,5 @@
 import { z } from "zod/v3";
-import { loadStore, saveStore } from "../lib/store.js";
+import store from "../lib/store.js";
 import { withTaskNotice } from "../lib/task-helpers.js";
 
 export function registerNoteTools(server) {
@@ -14,7 +14,6 @@ export function registerNoteTools(server) {
       from: z.string().optional().describe("Name of the workspace posting this note"),
     },
     withTaskNotice(async ({ workspace, content, tag, from }) => {
-      const store = loadStore();
       if (!store.workspaces[workspace]) {
         return { content: [{ type: "text", text: `❌ Workspace "${workspace}" not found. Register it first.` }] };
       }
@@ -26,7 +25,6 @@ export function registerNoteTools(server) {
       };
       store.workspaces[workspace].notes.push(note);
       store.workspaces[workspace].updated_at = new Date().toISOString();
-      saveStore(store);
       return {
         content: [{ type: "text", text: `✅ Note posted to "${workspace}".` }],
       };
@@ -44,7 +42,6 @@ export function registerNoteTools(server) {
       limit: z.number().optional().describe("Max number of notes to return (default: 20)"),
     },
     withTaskNotice(async ({ workspace, tag, from, limit = 20 }) => {
-      const store = loadStore();
       const ws = store.workspaces[workspace];
       if (!ws) {
         return { content: [{ type: "text", text: `❌ Workspace "${workspace}" not found.` }] };
@@ -75,7 +72,6 @@ export function registerNoteTools(server) {
       exclude: z.array(z.string()).optional().describe("Workspace names to skip"),
     },
     withTaskNotice(async ({ content, tag, from, exclude = [] }) => {
-      const store = loadStore();
       const targets = Object.keys(store.workspaces).filter((n) => !exclude.includes(n));
       if (targets.length === 0) {
         return {
@@ -92,7 +88,6 @@ export function registerNoteTools(server) {
         store.workspaces[name].notes.push(note);
         store.workspaces[name].updated_at = new Date().toISOString();
       }
-      saveStore(store);
       return {
         content: [{ type: "text", text: `✅ Broadcasted to: ${targets.join(", ")}` }],
       };
@@ -107,13 +102,11 @@ export function registerNoteTools(server) {
       workspace: z.string(),
     },
     withTaskNotice(async ({ workspace }) => {
-      const store = loadStore();
       if (!store.workspaces[workspace]) {
         return { content: [{ type: "text", text: `❌ Workspace "${workspace}" not found.` }] };
       }
       store.workspaces[workspace].notes = [];
       store.workspaces[workspace].updated_at = new Date().toISOString();
-      saveStore(store);
       return { content: [{ type: "text", text: `✅ Notes cleared for "${workspace}".` }] };
     })
   );

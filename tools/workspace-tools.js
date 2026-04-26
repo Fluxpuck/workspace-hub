@@ -1,5 +1,5 @@
 import { z } from "zod/v3";
-import { loadStore, saveStore } from "../lib/store.js";
+import store from "../lib/store.js";
 import { withTaskNotice } from "../lib/task-helpers.js";
 
 export function registerWorkspaceTools(server) {
@@ -14,7 +14,6 @@ export function registerWorkspaceTools(server) {
       metadata: z.record(z.string()).optional().describe("Any extra key/value pairs to share (repo URL, port, etc.)"),
     },
     withTaskNotice(async ({ name, description, tech_stack, metadata }) => {
-      const store = loadStore();
       store.workspaces[name] = {
         name,
         description,
@@ -25,7 +24,6 @@ export function registerWorkspaceTools(server) {
         registered_at: store.workspaces[name]?.registered_at ?? new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-      saveStore(store);
       return {
         content: [{ type: "text", text: `✅ Workspace "${name}" registered successfully.` }],
       };
@@ -38,7 +36,6 @@ export function registerWorkspaceTools(server) {
     "List all registered workspaces and their descriptions",
     {},
     withTaskNotice(async () => {
-      const store = loadStore();
       const workspaces = Object.values(store.workspaces);
       if (workspaces.length === 0) {
         return { content: [{ type: "text", text: "No workspaces registered yet." }] };
@@ -58,7 +55,6 @@ export function registerWorkspaceTools(server) {
       name: z.string().describe("Name of the workspace to retrieve"),
     },
     withTaskNotice(async ({ name }) => {
-      const store = loadStore();
       const ws = store.workspaces[name];
       if (!ws) {
         return { content: [{ type: "text", text: `❌ Workspace "${name}" not found.` }] };

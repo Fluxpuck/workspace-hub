@@ -10,4 +10,6 @@ COPY server.js ./
 COPY lib/ lib/
 COPY tools/ tools/
 
-ENTRYPOINT ["node", "server.js"]
+EXPOSE 4440
+
+CMD ["node", "server.js"]

@@ -19,31 +19,22 @@
 │  IDE             │         │  IDE             │         │  IDE             │
 └────────┬─────────┘         └────────┬─────────┘         └────────┬─────────┘
          │                            │                            │
-         └────────────────┬───────────┴────────────────┬───────────┘
-                          │                            │
-                    ┌─────▼────────────────────────────▼─────┐
-                    │  workspace-hub MCP Server (stdio)      │
-                    │  - Registers workspaces                │
-                    │  - Stores/retrieves notes              │
-                    │  - Broadcasts messages                 │
-                    └─────┬────────────────────────────┬─────┘
-                          │                            │
-                    ┌─────▼────────────────────────────▼─────┐
-                    │  workspaces/store.json (persistent)    │
-                    │  {                                     │
-                    │    "workspaces": {                     │
-                    │      "backend": {...},                 │
-                    │      "frontend": {...},                │
-                    │      "llm-orchestrator": {...}         │
-                    │    }                                   │
-                    │  }                                     │
+         └─────── HTTP (Streamable) ────┼────────────────────────┘
+                                       │
+                    ┌──────────────────▼─────────────────────┐
+                    │  workspace-hub MCP Server              │
+                    │  http://localhost:4440/mcp              │
+                    │  - Registers workspaces                 │
+                    │  - Stores/retrieves notes               │
+                    │  - Broadcasts messages                  │
+                    │  - In-memory state (single process)     │
                     └────────────────────────────────────────┘
 ```
 
 ### Key Design Decisions
 
-1. **Stdio-based MCP Transport:** Each workspace connects via stdio, making it easy to run locally without network setup.
-2. **File-based Persistence:** Uses `workspaces/store.json` to persist workspace metadata and notes. Simple, no database required.
+1. **Streamable HTTP Transport:** A single HTTP server accepts connections from all workspaces. No per-workspace processes or containers.
+2. **In-memory State:** All workspace data lives in a single process. No file I/O, no race conditions. State resets on server restart.
 3. **Workspace-centric Model:** Everything revolves around workspaces as first-class entities. Each workspace has metadata (name, description, tech stack) and a notes feed.
 4. **Tag-based Organization:** Notes can be tagged (e.g., `api-change`, `decision`, `bug`) for filtering and discovery.
 
@@ -350,17 +341,18 @@ Users don't need to call tools directly. They can talk naturally to your coding 
 
 - **Framework:** Node.js with ES modules
 - **MCP SDK:** `@modelcontextprotocol/sdk` (v1.29.0)
+- **HTTP:** Express (via SDK's `createMcpExpressApp`)
 - **Validation:** Zod (v4.3.6)
-- **Transport:** Stdio (built into MCP SDK)
-- **Persistence:** JSON file (workspaces/store.json)
+- **Transport:** Streamable HTTP (MCP SDK)
+- **State:** In-memory (resets on server restart)
 
 ### File Structure
 
 ```
 mcp-hub/
-├── server.js                      # Entrypoint — creates MCP server, registers tools, connects
+├── server.js                      # Entrypoint — HTTP server with Streamable HTTP transport
 ├── lib/
-│   ├── store.js                   # loadStore / saveStore persistence helpers
+│   ├── store.js                   # In-memory store (shared singleton)
 │   └── task-helpers.js            # generateTaskId, ensureTasks, processPendingTasksViaSampling
 ├── tools/
 │   ├── workspace-tools.js         # register_workspace, list_workspaces, get_workspace
@@ -370,32 +362,27 @@ mcp-hub/
 ├── README.md                      # User-facing documentation
 ├── agent.md                       # This file
 ├── Dockerfile                     # Docker image definition
-├── docker-compose.yml             # Docker Compose config (for building)
-├── windsurf-mcp-config.example.json  # Example MCP configuration
-└── workspaces/
-    └── store.json                 # Persistent workspace data (auto-created)
+├── docker-compose.yml             # Docker Compose config
+└── windsurf-mcp-config.example.json  # Example MCP configuration
 ```
 
 ### Key Functions
 
-**`loadStore()`** — Reads `workspaces/store.json` and returns the workspace registry. Returns empty registry if file doesn't exist.
-
-**`saveStore(store)`** — Writes the workspace registry to disk, creating directories as needed.
+**`store`** — A shared in-memory singleton (`{ workspaces: {} }`) imported by all tool modules. State resets on server restart.
 
 **`generateTaskId()`** — Creates a UUID for task identification.
 
-**`ensureTasks(workspace)`** — Ensures a workspace object has a `tasks` array (backward-compatible with stores created before the task system).
+**`ensureTasks(workspace)`** — Ensures a workspace object has a `tasks` array (backward-compatible migration helper).
 
 **`processPendingTasksViaSampling(workspaceName, mcpServer)`** — Attempts to auto-answer pending tasks by calling `server.createMessage()` (MCP sampling). Falls back gracefully if the client doesn't support sampling.
 
-**Server Initialization** — Creates an MCP server named "workspace-hub" and registers all 11 tools with Zod schemas for validation.
+**`createServer()`** — Factory that creates an MCP server instance with all 11 tools registered. One instance is created per session.
 
-### Persistence Strategy
+### State Management
 
-- **On-disk storage:** `workspaces/store.json` contains the entire state
-- **Atomic writes:** Each tool call that modifies state calls `saveStore()` to persist changes
-- **No transactions:** Simple JSON write; suitable for local development but not for high-concurrency scenarios
-- **Graceful degradation:** If the store file is missing or corrupted, the server starts with an empty registry
+- **In-memory store:** A single JavaScript object shared across all sessions in the same process
+- **No persistence:** State resets when the server restarts
+- **No concurrency issues:** Single-threaded Node.js event loop; all sessions share the same store object
 
 ---
 
@@ -407,7 +394,14 @@ mcp-hub/
 git clone <repo> ~/workspace-hub
 cd ~/workspace-hub
 npm install
+node server.js
+```
+
+Or with Docker:
+
+```bash
 docker build -t mcp/workspace-hub .
+docker run -p 4440:4440 mcp/workspace-hub
 ```
 
 ### MCP Configuration
@@ -418,18 +412,13 @@ In each IDE, add to **Settings → MCP Servers**:
 {
   "mcpServers": {
     "workspace-hub": {
-      "command": "docker",
-      "args": [
-        "run", "--rm", "-i",
-        "-v", "/absolute/path/to/workspace-hub-mcp/workspaces:/app/workspaces",
-        "mcp/workspace-hub"
-      ]
+      "serverUrl": "http://localhost:4440/mcp"
     }
   }
 }
 ```
 
-**Critical:** Use the **same absolute path** for the volume mount in all workspaces so they all share the same `store.json`.
+All workspaces connect to the same running server instance.
 
 ### Workspace Registration
 
@@ -443,15 +432,15 @@ In each workspace, ask your code agent to register once:
 
 ### Current Limitations
 
-1. **Stdio-only transport:** Workspaces must be on the same machine
+1. **No persistence:** State resets when the server restarts
 2. **No authentication:** Any workspace can read/write any other workspace's notes
-3. **No TTL on notes:** Notes persist indefinitely (manual cleanup required)
+3. **No TTL on notes:** Notes persist indefinitely until server restart (manual cleanup via `clear_notes`)
 4. **No real-time notifications:** Workspaces must poll for updates
-5. **Simple JSON storage:** Not suitable for high-concurrency or large-scale deployments
+5. **Local only:** Server binds to localhost by default
 
 ### Suggested Enhancements
 
-1. **HTTP transport:** Enable cross-machine workspace communication
+1. **Optional persistence:** Save/restore state to disk on shutdown/startup
 2. **Note TTL:** Auto-expire notes after a configurable duration
 3. **Webhook notifications:** POST to Discord/Slack when notes are posted
 4. **File attachments:** Share JSON schemas, OpenAPI specs, or code snippets
@@ -467,14 +456,12 @@ In each workspace, ask your code agent to register once:
 ### Common Issues
 
 **Workspaces not connecting:**
-- Verify the absolute path in the volume mount is correct
-- Ensure Docker is installed and running
-- Check for stale containers: `docker ps -a --filter ancestor=mcp/workspace-hub`
+- Verify the server is running (`node server.js`)
+- Check that the `serverUrl` in MCP config matches the server's address
+- Ensure port 4440 (or custom `PORT`) is not in use
 
-**Notes not persisting:**
-- Check that `workspaces/` directory is writable
-- Verify `store.json` is valid JSON (no syntax errors)
-- Check disk space
+**State lost after restart:**
+- This is by design. State is in-memory only and resets on server restart.
 
 **Workspace not found errors:**
 - Ensure the workspace was registered first with `register_workspace`
@@ -482,10 +469,9 @@ In each workspace, ask your code agent to register once:
 
 ### Debugging Tips
 
-1. Check `workspaces/store.json` directly to inspect state
-2. Add console.error() logging in server.js to trace execution
-3. Use `list_workspaces` to verify registrations
-4. Use `get_workspace` to inspect full workspace state including notes
+1. Use `list_workspaces` to verify registrations
+2. Use `get_workspace` to inspect full workspace state including notes
+3. Check server console output for errors
 
 ---
 
@@ -525,4 +511,4 @@ In each workspace, ask your code agent to register once:
 
 ## Summary
 
-**Workspace Hub MCP** is a lightweight, file-based coordination system for multi-workspace development. It solves the problem of context fragmentation by providing a central hub where workspaces can register, share notes, and query each other. The tool is ideal for local development workflows and can be extended with HTTP transport, webhooks, and other features for more advanced use cases.
+**Workspace Hub MCP** is a lightweight, in-memory coordination system for multi-workspace development. It solves the problem of context fragmentation by providing a central hub where workspaces can register, share notes, and query each other. The server runs as a single HTTP process using the MCP Streamable HTTP transport, and all workspaces connect to the same instance.

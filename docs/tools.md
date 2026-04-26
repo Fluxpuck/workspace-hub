@@ -325,8 +325,7 @@ All tools return error messages if something goes wrong:
 If you encounter errors, verify:
 1. Workspace name spelling (case-sensitive)
 2. Workspace is registered (use `list_workspaces` to check)
-3. File permissions on `workspaces/store.json`
-4. Disk space available
+3. The server is running and reachable
 
 ---
 

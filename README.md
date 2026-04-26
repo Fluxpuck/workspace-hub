@@ -8,15 +8,15 @@ A local MCP server that lets multiple IDE workspaces share context with each oth
 ┌─────────────────┐     ┌─────────────────────────┐     ┌──────────────────────┐
 │  backend/       │     │                         │     │  frontend/           │
 │  IDE            │────▶│   workspace-hub MCP     │◀────│  IDE                 │
-│                 │     │   (runs locally via     │     │                      │
-│  llm-orchestra/ │────▶│    stdio per-workspace) │     │                      │
+│                 │     │   (single HTTP server   │     │                      │
+│  llm-orchestra/ │────▶│    on localhost:4440)    │     │                      │
 │  IDE            │     │                         │     │                      │
 └─────────────────┘     └─────────────────────────┘     └──────────────────────┘
-                               stores context in
-                           workspaces/store.json
+                           all state lives in-memory
+                          in a single server process
 ```
 
-Each IDE connects to the same MCP server binary. The server persists shared state to a JSON file on disk.
+A single HTTP server runs locally. All IDE workspaces connect to it over the MCP Streamable HTTP transport, sharing in-memory state.
 
 ## Setup
 
@@ -28,32 +28,38 @@ cd ~/workspace-hub
 npm install
 ```
 
-### 2. Build the Docker image
+### 2. Start the server
+
+Run directly:
+
+```bash
+node server.js
+```
+
+Or with Docker:
 
 ```bash
 docker build -t mcp/workspace-hub .
+docker run -p 4440:4440 mcp/workspace-hub
 ```
+
+The server listens on `http://localhost:4440/mcp` by default. Set the `PORT` environment variable to change it.
 
 ### 3. Configure each workspace
 
-In each IDE, open **Settings → MCP Servers** and add (use the **same absolute path** in all workspaces):
+In each IDE, open **Settings → MCP Servers** and add:
 
 ```json
 {
   "mcpServers": {
     "workspace-hub": {
-      "command": "docker",
-      "args": [
-        "run", "--rm", "-i",
-        "-v", "/absolute/path/to/workspace-hub-mcp/workspaces:/app/workspaces",
-        "mcp/workspace-hub"
-      ]
+      "serverUrl": "http://localhost:4440/mcp"
     }
   }
 }
 ```
 
-The container auto-starts when the editor connects and shares `workspaces/store.json` via a volume mount. Each container gets a random Docker name (e.g., `crazy_newton`).
+All workspaces connect to the same server. No volume mounts or per-workspace containers needed.
 
 ## Get Started
 
@@ -104,7 +110,7 @@ Workspace A                              Workspace B
     do you use?")
         │
         ▼
-   store.json: task
+   in-memory: task
    { status: "pending" }
                                          2. get_pending_tasks("backend")
                                               │

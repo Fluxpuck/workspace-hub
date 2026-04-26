@@ -1,15 +1,7 @@
 {
   "mcpServers": {
     "workspace-hub": {
-      "command": "docker",
-      "args": [
-        "run",
-        "--rm",
-        "-i",
-        "-v",
-        "/ABSOLUTE/PATH/TO/workspace-hub-mcp/workspaces:/app/workspaces",
-        "mcp/workspace-hub"
-      ]
+      "serverUrl": "http://localhost:4440/mcp"
     }
   }
 }

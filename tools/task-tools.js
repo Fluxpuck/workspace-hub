@@ -1,5 +1,5 @@
 import { z } from "zod/v3";
-import { loadStore, saveStore } from "../lib/store.js";
+import store from "../lib/store.js";
 import { generateTaskId, ensureTasks, processPendingTasksViaSampling, withTaskNotice } from "../lib/task-helpers.js";
 
 export function registerTaskTools(server) {
@@ -13,7 +13,6 @@ export function registerTaskTools(server) {
       from: z.string().describe("Your workspace name (the one asking)"),
     },
     withTaskNotice(async ({ target, question, from }) => {
-      const store = loadStore();
       if (!store.workspaces[target]) {
         return { content: [{ type: "text", text: `❌ Workspace "${target}" not found. Register it first.` }] };
       }
@@ -29,7 +28,6 @@ export function registerTaskTools(server) {
       };
       store.workspaces[target].tasks.push(task);
       store.workspaces[target].updated_at = new Date().toISOString();
-      saveStore(store);
       return {
         content: [{ type: "text", text: `✅ Task ${task.id} posted to "${target}". The next time their agent interacts with the hub, it will attempt to auto-answer via sampling.` }],
       };
@@ -44,7 +42,6 @@ export function registerTaskTools(server) {
       workspace: z.string().describe("Your workspace name"),
     },
     withTaskNotice(async ({ workspace }) => {
-      const store = loadStore();
       const ws = store.workspaces[workspace];
       if (!ws) {
         return { content: [{ type: "text", text: `❌ Workspace "${workspace}" not found.` }] };
@@ -53,11 +50,8 @@ export function registerTaskTools(server) {
       // Attempt to auto-answer pending tasks via sampling first
       const samplingNotice = await processPendingTasksViaSampling(workspace, server);
 
-      // Reload store after sampling may have updated tasks
-      const freshStore = loadStore();
-      const freshWs = freshStore.workspaces[workspace];
-      ensureTasks(freshWs);
-      const pendingTasks = freshWs.tasks.filter((t) => t.status === "pending");
+      ensureTasks(ws);
+      const pendingTasks = ws.tasks.filter((t) => t.status === "pending");
 
       if (pendingTasks.length === 0) {
         const doneMsg = samplingNotice
@@ -84,7 +78,6 @@ export function registerTaskTools(server) {
       response: z.string().describe("Your response — be specific and include concrete details"),
     },
     withTaskNotice(async ({ task_id, response }) => {
-      const store = loadStore();
       for (const ws of Object.values(store.workspaces)) {
         ensureTasks(ws);
         const task = ws.tasks.find((t) => t.id === task_id);
@@ -96,7 +89,6 @@ export function registerTaskTools(server) {
           task.response = response;
           task.completed_at = new Date().toISOString();
           ws.updated_at = new Date().toISOString();
-          saveStore(store);
           return {
             content: [{ type: "text", text: `✅ Response posted to task ${task_id} (from "${task.from}").` }],
           };
@@ -115,7 +107,6 @@ export function registerTaskTools(server) {
       status: z.enum(["pending", "completed", "failed"]).optional().describe("Filter by task status (default: all)"),
     },
     withTaskNotice(async ({ from, status }) => {
-      const store = loadStore();
       const allTasks = [];
       for (const [wsName, ws] of Object.entries(store.workspaces)) {
         ensureTasks(ws);

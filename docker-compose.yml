@@ -3,7 +3,6 @@ services:
     build: .
     image: mcp/workspace-hub
     container_name: workspace-hub
-    stdin_open: true
-    volumes:
-      - ./workspaces:/app/workspaces
+    ports:
+      - "4440:4440"
     restart: unless-stopped

@@ -1,5 +1,5 @@
 {
-  "name": "workspace-hub-mcp",
+  "name": "workspace-hub",
   "version": "1.0.0",
   "description": "A local MCP server that enables multiple IDE workspaces to share context and communicate with each other.",
   "author": "Mathijs van der Kuijp <mathijsvanderkuijp@gmail.com>",
@@ -16,10 +16,9 @@
   "license": "ISC",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "express": "^5.2.1",
     "zod": "^4.3.6"
   },
   "type": "module",
-  "bin": {
-    "workspace-hub": "./server.js"
-  }
+  "bin": "./server.js"
 }
