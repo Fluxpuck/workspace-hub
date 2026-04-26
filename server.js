@@ -17,6 +17,8 @@ import { registerTaskTools } from "./tools/task-tools.js";
 
 const server = new McpServer({
   name: "workspace-hub",
+  description:
+    "A local MCP server that enables multiple IDE workspaces to share context and communicate with each other.",
   version: "1.0.0",
 });
 
