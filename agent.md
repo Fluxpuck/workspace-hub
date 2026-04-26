@@ -358,7 +358,14 @@ Users don't need to call tools directly. They can talk naturally to your coding 
 
 ```
 mcp-hub/
-├── server.js                      # Main MCP server implementation
+├── server.js                      # Entrypoint — creates MCP server, registers tools, connects
+├── lib/
+│   ├── store.js                   # loadStore / saveStore persistence helpers
+│   └── task-helpers.js            # generateTaskId, ensureTasks, processPendingTasksViaSampling
+├── tools/
+│   ├── workspace-tools.js         # register_workspace, list_workspaces, get_workspace
+│   ├── note-tools.js              # post_note, get_notes, broadcast_note, clear_notes
+│   └── task-tools.js              # post_task, get_pending_tasks, respond_to_task, get_task_responses
 ├── package.json                   # Dependencies and metadata
 ├── README.md                      # User-facing documentation
 ├── agent.md                       # This file
