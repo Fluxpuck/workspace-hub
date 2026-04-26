@@ -1,5 +1,5 @@
 node_modules/
-workspaces/
+data/
 .git/
 .vscode/
 .windsurf/

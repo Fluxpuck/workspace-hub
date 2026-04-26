@@ -30,7 +30,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # Runtime data
-workspaces/store.json
+data/
 
 # Environment
 .env
