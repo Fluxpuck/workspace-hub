@@ -45,16 +45,18 @@ In each IDE, open **Settings → MCP Servers** and add:
 
 > Use the **same absolute path** in all workspaces — they all share one `workspaces/store.json`.
 
-### 3. Register each workspace (do once per workspace)
+## Quick Start
 
-In your **backend** workspace, tell your coding agent:
-> "Register this workspace with the workspace-hub MCP. Name: backend. Description: Express REST API. Stack: TypeScript, Express, PostgreSQL."
+In each workspace, tell your coding agent to register once:
 
-In your **frontend** workspace:
-> "Register this workspace. Name: frontend. Description: Next.js web app. Stack: Next.js, TypeScript, Tailwind."
+> "Register this workspace with the workspace-hub MCP. Name: [workspace-name]. Description: [what it does]. Stack: [technologies]."
 
-In your **llm-orchestrator** workspace:
-> "Register this workspace. Name: llm-orchestrator. Description: Claude API integration and prompt chains."
+**Examples:**
+- Backend: `Name: backend, Description: Express REST API, Stack: TypeScript, Express, PostgreSQL`
+- Frontend: `Name: frontend, Description: Next.js web app, Stack: Next.js, TypeScript, Tailwind`
+- LLM: `Name: llm-orchestrator, Description: Claude API integration, Stack: Node.js, TypeScript`
+
+Once registered, you can immediately start sharing context across workspaces.
 
 ---
 
@@ -70,63 +72,6 @@ In your **llm-orchestrator** workspace:
 | `broadcast_note` | Post a note to all workspaces at once |
 | `clear_notes` | Clear notes for a workspace |
 
----
-
-## Example workflows
-
-### Backend tells frontend about an API change
-In the **backend** workspace, your coding agent can:
-```
-post_note(
-  workspace: "frontend",
-  content: "POST /api/sessions now requires a `locale` field in the body",
-  tag: "api-change",
-  from: "backend"
-)
-```
-
-### Frontend asks about the backend
-In the **frontend** workspace, your coding agent can:
-```
-get_workspace(name: "backend")
-get_notes(workspace: "backend", tag: "api-change")
-```
-
-### LLM orchestrator broadcasts a prompt format change
-```
-broadcast_note(
-  content: "All AI responses now return { result, confidence, model } instead of plain string",
-  tag: "breaking-change",
-  from: "llm-orchestrator",
-  exclude: ["llm-orchestrator"]
-)
-```
-
-### Natural language prompts that trigger MCP
-
-You can just talk to coding agent naturally:
-
-- *"What's the backend working on right now?"* → coding agent calls `get_workspace("backend")`
-- *"Tell the frontend team our auth endpoint changed"* → coding agent calls `post_note`
-- *"What API changes should I know about?"* → coding agent calls `get_notes(tag: "api-change")`
-- *"Announce to all workspaces that we're switching to Bun"* → coding agent calls `broadcast_note`
+For detailed documentation on each tool, parameters, and workflows, see [`docs/tools.md`](docs/tools.md).
 
 ---
-
-## Suggested note tags
-
-- `api-change` — endpoint signature changed
-- `decision` — architectural decision made
-- `todo` — something another workspace needs to do
-- `bug` — known bug that affects others
-- `breaking-change` — breaks existing integrations
-- `info` — general FYI
-
----
-
-## Extending this PoC
-
-- **Add HTTP transport** so workspaces on different machines can connect (e.g. your servers)
-- **Add TTL to notes** so stale context auto-expires
-- **Webhook notifications** — POST to a Discord channel when a note is posted
-- **File sharing** — allow attaching small JSON schemas or OpenAPI snippets to a workspace
