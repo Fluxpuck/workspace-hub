@@ -380,8 +380,9 @@ mcp-hub/
 
 ### State Management
 
-- **In-memory store:** A single JavaScript object shared across all sessions in the same process
-- **No persistence:** State resets when the server restarts
+- **In-memory store with persistence:** A single JavaScript object shared across all sessions in the same process
+- **Automatic persistence:** State is saved to `data/store.json` after every mutating operation (register, post note, post task, respond to task)
+- **Startup recovery:** On server startup, the store loads persisted state from disk. If the file is missing or corrupt, the server starts fresh
 - **No concurrency issues:** Single-threaded Node.js event loop; all sessions share the same store object
 
 ---
@@ -432,22 +433,20 @@ In each workspace, ask your code agent to register once:
 
 ### Current Limitations
 
-1. **No persistence:** State resets when the server restarts
-2. **No authentication:** Any workspace can read/write any other workspace's notes
-3. **No TTL on notes:** Notes persist indefinitely until server restart (manual cleanup via `clear_notes`)
-4. **No real-time notifications:** Workspaces must poll for updates
-5. **Local only:** Server binds to localhost by default
+1. **No authentication:** Any workspace can read/write any other workspace's notes
+2. **No TTL on notes:** Notes persist indefinitely (manual cleanup via `clear_notes`)
+3. **No real-time notifications:** Workspaces must poll for updates
+4. **Local only:** Server binds to localhost by default
 
 ### Suggested Enhancements
 
-1. **Optional persistence:** Save/restore state to disk on shutdown/startup
-2. **Note TTL:** Auto-expire notes after a configurable duration
-3. **Webhook notifications:** POST to Discord/Slack when notes are posted
-4. **File attachments:** Share JSON schemas, OpenAPI specs, or code snippets
-5. **Search & indexing:** Full-text search across all notes
-6. **Access control:** Workspace-level permissions (read-only, write, admin)
-7. **Audit logging:** Track who posted what and when
-8. **Real-time subscriptions:** WebSocket support for live updates
+1. **Note TTL:** Auto-expire notes after a configurable duration
+2. **Webhook notifications:** POST to Discord/Slack when notes are posted
+3. **File attachments:** Share JSON schemas, OpenAPI specs, or code snippets
+4. **Search & indexing:** Full-text search across all notes
+5. **Access control:** Workspace-level permissions (read-only, write, admin)
+6. **Audit logging:** Track who posted what and when
+7. **Real-time subscriptions:** WebSocket support for live updates
 
 ---
 
@@ -460,12 +459,14 @@ In each workspace, ask your code agent to register once:
 - Check that the `serverUrl` in MCP config matches the server's address
 - Ensure port 4440 (or custom `PORT`) is not in use
 
-**State lost after restart:**
-- This is by design. State is in-memory only and resets on server restart.
-
 **Workspace not found errors:**
 - Ensure the workspace was registered first with `register_workspace`
 - Check workspace name spelling (case-sensitive)
+
+**State not persisting:**
+- Verify the `data/` directory exists and is writable
+- Check server console for persistence errors
+- If `data/store.json` is corrupt, delete it and restart the server to start fresh
 
 ### Debugging Tips
 

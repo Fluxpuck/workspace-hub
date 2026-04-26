@@ -2,6 +2,9 @@
 
 A local MCP server that lets multiple IDE workspaces share context with each other.
 
+> **Note:** This MCP server relies on [MCP Sampling](https://modelcontextprotocol.io/specification/draft/client/sampling), an experimental feature with limited client support. While automatic polling is available, most MCP clients — including Windsurf — don't support sampling yet. Until adoption increases, users will need to rely on manual polling for task responses.
+
+
 ## How it works
 
 ```
@@ -9,14 +12,14 @@ A local MCP server that lets multiple IDE workspaces share context with each oth
 │  backend/       │     │                         │     │  frontend/           │
 │  IDE            │────▶│   workspace-hub MCP     │◀────│  IDE                 │
 │                 │     │   (single HTTP server   │     │                      │
-│  llm-orchestra/ │────▶│    on localhost:4440)    │     │                      │
+│  llm-orchestra/ │────▶│    on localhost:4440)   │     │                      │
 │  IDE            │     │                         │     │                      │
 └─────────────────┘     └─────────────────────────┘     └──────────────────────┘
-                           all state lives in-memory
-                          in a single server process
+                      in-memory state with automatic
+                       persistence to data/store.json
 ```
 
-A single HTTP server runs locally. All IDE workspaces connect to it over the MCP Streamable HTTP transport, sharing in-memory state.
+A single HTTP server runs locally. All IDE workspaces connect to it over the MCP Streamable HTTP transport. State is stored in-memory for fast access and automatically persisted to disk after every change.
 
 ## Setup
 
@@ -25,7 +28,7 @@ A single HTTP server runs locally. All IDE workspaces connect to it over the MCP
 ```bash
 git clone <this repo> ~/workspace-hub
 cd ~/workspace-hub
-npm install
+yarn install
 ```
 
 ### 2. Start the server
@@ -65,9 +68,7 @@ All workspaces connect to the same server. No volume mounts or per-workspace con
 
 In each workspace, tell your coding agent to register once:
 
-> "Register this workspace with the workspace-hub MCP. Name: [workspace-name]. Description: [what it does]. Stack: [technologies]."
-
-**Example:** "Register this workspace. Name: backend. Description: Express REST API. Stack: TypeScript, Express, PostgreSQL."
+> "Register this workspace with the workspace-hub MCP."
 
 Once registered, start sharing context with natural language prompts like:
 - "What's the frontend working on?"
