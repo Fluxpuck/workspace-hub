@@ -18,6 +18,7 @@ import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js
 import { registerWorkspaceTools } from "./tools/workspace-tools.js";
 import { registerNoteTools } from "./tools/note-tools.js";
 import { registerTaskTools } from "./tools/task-tools.js";
+import { unbindSession } from "./lib/sessions.js";
 
 // ─── Server factory ─────────────────────────────────────────────────────────
 
@@ -29,7 +30,7 @@ function createServer() {
     version: "1.0.0",
   });
 
-  registerWorkspaceTools(server);
+  registerWorkspaceTools(server, server);
   registerNoteTools(server);
   registerTaskTools(server);
 
@@ -53,6 +54,8 @@ app.post("/mcp", async (req, res) => {
       transport = transports.get(sessionId);
     } else if (!sessionId && isInitializeRequest(req.body)) {
       // New initialization request — create transport + server
+      const mcpServer = createServer();
+
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: (id) => {
@@ -64,10 +67,10 @@ app.post("/mcp", async (req, res) => {
         if (transport.sessionId) {
           transports.delete(transport.sessionId);
         }
+        unbindSession(mcpServer);
       };
 
-      const server = createServer();
-      await server.connect(transport);
+      await mcpServer.connect(transport);
       await transport.handleRequest(req, res, req.body);
       return;
     } else {

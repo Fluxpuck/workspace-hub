@@ -1,6 +1,6 @@
 import { z } from "zod/v3";
 import store from "../lib/store.js";
-import { generateTaskId, ensureTasks, processPendingTasksViaSampling, withTaskNotice } from "../lib/task-helpers.js";
+import { generateTaskId, ensureTasks, autoAnswerTask, withTaskNotice } from "../lib/task-helpers.js";
 
 export function registerTaskTools(server) {
   // ── Tool: post_task ──────────────────────────────────────────────────────────
@@ -28,8 +28,16 @@ export function registerTaskTools(server) {
       };
       store.workspaces[target].tasks.push(task);
       store.workspaces[target].updated_at = new Date().toISOString();
+
+      const autoResult = await autoAnswerTask(task, target);
+
+      if (autoResult.answered) {
+        return {
+          content: [{ type: "text", text: `✅ Task ${task.id} posted to "${target}" and auto-answered via sampling.\n\n**Response:** ${task.response}` }],
+        };
+      }
       return {
-        content: [{ type: "text", text: `✅ Task ${task.id} posted to "${target}". The next time their agent interacts with the hub, it will attempt to auto-answer via sampling.` }],
+        content: [{ type: "text", text: `✅ Task ${task.id} posted to "${target}". ${autoResult.reason}` }],
       };
     })
   );
@@ -47,24 +55,17 @@ export function registerTaskTools(server) {
         return { content: [{ type: "text", text: `❌ Workspace "${workspace}" not found.` }] };
       }
 
-      // Attempt to auto-answer pending tasks via sampling first
-      const samplingNotice = await processPendingTasksViaSampling(workspace, server);
-
       ensureTasks(ws);
       const pendingTasks = ws.tasks.filter((t) => t.status === "pending");
 
       if (pendingTasks.length === 0) {
-        const doneMsg = samplingNotice
-          ? `All tasks handled.${samplingNotice}`
-          : `No pending tasks for "${workspace}".`;
-        return { content: [{ type: "text", text: doneMsg }] };
+        return { content: [{ type: "text", text: `No pending tasks for "${workspace}".` }] };
       }
       const lines = pendingTasks.map(
         (t) => `**Task ${t.id}**\n  From: ${t.from}\n  Question: ${t.question}\n  Posted: ${t.created_at}`
       );
-      const mainText = `📋 ${pendingTasks.length} pending task(s) for "${workspace}":\n\n${lines.join("\n\n")}\n\nUse \`respond_to_task\` to answer each one.`;
       return {
-        content: [{ type: "text", text: samplingNotice ? mainText + samplingNotice : mainText }],
+        content: [{ type: "text", text: `📋 ${pendingTasks.length} pending task(s) for "${workspace}":\n\n${lines.join("\n\n")}\n\nUse \`respond_to_task\` to answer each one.` }],
       };
     })
   );

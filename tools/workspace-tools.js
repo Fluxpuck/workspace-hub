@@ -1,8 +1,9 @@
 import { z } from "zod/v3";
 import store from "../lib/store.js";
 import { withTaskNotice } from "../lib/task-helpers.js";
+import { bindSession } from "../lib/sessions.js";
 
-export function registerWorkspaceTools(server) {
+export function registerWorkspaceTools(server, mcpServer) {
   // ── Tool: register_workspace ─────────────────────────────────────────────────
   server.tool(
     "register_workspace",
@@ -24,6 +25,7 @@ export function registerWorkspaceTools(server) {
         registered_at: store.workspaces[name]?.registered_at ?? new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
+      bindSession(name, mcpServer);
       return {
         content: [{ type: "text", text: `✅ Workspace "${name}" registered successfully.` }],
       };
