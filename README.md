@@ -69,7 +69,49 @@ Once registered, start sharing context with natural language prompts like:
 | `get_notes` | Retrieve notes (with filtering) |
 | `broadcast_note` | Post to all workspaces |
 | `clear_notes` | Clear workspace notes |
+| `post_task` | Ask a question to another workspace's agent |
+| `get_pending_tasks` | Check for tasks assigned to your workspace (auto-answers via sampling if supported) |
+| `respond_to_task` | Manually respond to a pending task |
+| `get_task_responses` | Retrieve responses to tasks you posted |
 
 **→ See [`docs/tools.md`](docs/tools.md) for detailed documentation, parameters, and examples.**
+
+---
+
+## Cross-Workspace Lookups
+
+The task system lets one workspace's agent ask another workspace's agent a question and get an answer back.
+
+### How it works
+
+```
+Workspace A                              Workspace B
+─────────────                            ─────────────
+1. post_task("backend",
+   "What auth middleware
+    do you use?")
+        │
+        ▼
+   store.json: task
+   { status: "pending" }
+                                         2. get_pending_tasks("backend")
+                                              │
+                                              ▼
+                                         Server attempts createMessage()
+                                         (MCP sampling) to auto-answer
+                                              │
+                                         If sampling works → auto-completed
+                                         If not → agent responds manually
+                                         via respond_to_task()
+
+3. get_task_responses("frontend")
+   → "We use Passport.js with..."
+```
+
+### Example prompts
+
+- "Ask the backend what database they use" → `post_task`
+- "Check if any workspaces need something from me" → `get_pending_tasks`
+- "Did the backend answer my question yet?" → `get_task_responses`
 
 ---

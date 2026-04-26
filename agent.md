@@ -60,6 +60,7 @@
   tech_stack: string[],           // Technologies used
   metadata: Record<string, string>, // Custom key-value pairs (repo URL, port, etc.)
   notes: Note[],                  // Array of notes posted to this workspace
+  tasks: Task[],                  // Array of tasks (cross-workspace lookups)
   registered_at: ISO8601,         // Registration timestamp
   updated_at: ISO8601             // Last update timestamp
 }
@@ -73,6 +74,20 @@
   tag: string,                    // Category: api-change, decision, todo, bug, etc.
   from: string,                   // Source workspace name
   timestamp: ISO8601              // When the note was posted
+}
+```
+
+### Task Object
+
+```javascript
+{
+  id: string,                     // UUID identifier
+  question: string,               // The question or lookup request
+  from: string,                   // Requesting workspace name
+  status: string,                 // "pending" | "completed" | "failed"
+  response: string | null,        // The answer (null while pending)
+  created_at: ISO8601,            // When the task was posted
+  completed_at: ISO8601 | null    // When the task was answered
 }
 ```
 
@@ -182,6 +197,62 @@
 
 ---
 
+### 8. `post_task`
+**Purpose:** Post a question or lookup request to another workspace's agent.
+
+**Parameters:**
+- `target` (required): Target workspace name to ask the question to
+- `question` (required): The question or lookup request (be specific)
+- `from` (required): Your workspace name (the one asking)
+
+**Returns:** Task ID and confirmation. The target workspace's agent will auto-answer via MCP sampling if supported, or the agent can respond manually.
+
+**Example Use Case:**
+> "Ask the backend workspace what auth middleware they use."
+
+---
+
+### 9. `get_pending_tasks`
+**Purpose:** Check for pending tasks assigned to your workspace from other workspaces. Automatically attempts to answer via MCP sampling before listing remaining tasks.
+
+**Parameters:**
+- `workspace` (required): Your workspace name
+
+**Returns:** List of pending tasks with questions and source workspace names. If MCP sampling is supported by the client, tasks are auto-answered before returning.
+
+**Example Use Case:**
+> "Check if any workspaces need something from me."
+
+---
+
+### 10. `respond_to_task`
+**Purpose:** Manually respond to a pending task from another workspace. Use after investigating the question with local tools.
+
+**Parameters:**
+- `task_id` (required): The task ID to respond to
+- `response` (required): Your response (be specific and include concrete details)
+
+**Returns:** Success confirmation
+
+**Example Use Case:**
+> "Respond to task abc-123 with: We use Passport.js with JWT strategy for auth."
+
+---
+
+### 11. `get_task_responses`
+**Purpose:** Retrieve responses to tasks you posted to other workspaces.
+
+**Parameters:**
+- `from` (required): Your workspace name (the one that posted the tasks)
+- `status` (optional): Filter by task status (pending, completed, failed)
+
+**Returns:** List of tasks with their responses and statuses.
+
+**Example Use Case:**
+> "Did the backend answer my question yet?"
+
+---
+
 ## Suggested Note Tags
 
 | Tag | Purpose |
@@ -233,12 +304,42 @@ broadcast_note(
 )
 ```
 
-### Scenario 4: Natural Language Prompts
+### Scenario 4: Cross-Workspace Lookup (Task System)
+**Frontend workspace asks a question:**
+```
+post_task(
+  target: "backend",
+  question: "What auth middleware do you use and how is it configured?",
+  from: "frontend"
+)
+```
+
+**Backend workspace checks for tasks:**
+```
+get_pending_tasks(workspace: "backend")
+```
+The server first attempts MCP sampling (`createMessage`) to auto-answer. If the client supports sampling, the task is auto-completed. If not, the agent sees the pending task and can investigate locally, then respond:
+```
+respond_to_task(
+  task_id: "abc-123",
+  response: "We use Passport.js with JWT strategy. Config is in src/middleware/auth.ts."
+)
+```
+
+**Frontend workspace retrieves the answer:**
+```
+get_task_responses(from: "frontend")
+```
+
+### Scenario 5: Natural Language Prompts
 Users don't need to call tools directly. They can talk naturally to your coding agent:
 
 - *"What's the backend working on right now?"* → coding agent infers `get_workspace("backend")`
 - *"Tell the frontend team our auth endpoint changed"* → coding agent infers `post_note` with appropriate parameters
 - *"What API changes should I know about?"* → coding agent infers `get_notes` with `tag: "api-change"`
+- *"Ask the backend what database they use"* → coding agent infers `post_task` with appropriate parameters
+- *"Check if any workspaces need something from me"* → coding agent infers `get_pending_tasks`
+- *"Did the backend answer my question yet?"* → coding agent infers `get_task_responses`
 - *"List all workspaces"* → coding agent calls `list_workspaces`
 
 ---
@@ -272,7 +373,13 @@ mcp-hub/
 
 **`saveStore(store)`** — Writes the workspace registry to disk, creating directories as needed.
 
-**Server Initialization** — Creates an MCP server named "workspace-hub" and registers all 7 tools with Zod schemas for validation.
+**`generateTaskId()`** — Creates a UUID for task identification.
+
+**`ensureTasks(workspace)`** — Ensures a workspace object has a `tasks` array (backward-compatible with stores created before the task system).
+
+**`processPendingTasksViaSampling(workspaceName, mcpServer)`** — Attempts to auto-answer pending tasks by calling `server.createMessage()` (MCP sampling). Falls back gracefully if the client doesn't support sampling.
+
+**Server Initialization** — Creates an MCP server named "workspace-hub" and registers all 11 tools with Zod schemas for validation.
 
 ### Persistence Strategy
 
