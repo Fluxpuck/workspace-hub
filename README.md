@@ -30,7 +30,7 @@ npm install
 
 ### 2. Configure each workspace
 
-In each IDE, open **Settings → MCP Servers** and add:
+In each IDE, open **Settings → MCP Servers** and add (use the **same absolute path** in all workspaces):
 
 ```json
 {
@@ -43,35 +43,33 @@ In each IDE, open **Settings → MCP Servers** and add:
 }
 ```
 
-> Use the **same absolute path** in all workspaces — they all share one `workspaces/store.json`.
-
-## Quick Start
+## Get Started
 
 In each workspace, tell your coding agent to register once:
 
 > "Register this workspace with the workspace-hub MCP. Name: [workspace-name]. Description: [what it does]. Stack: [technologies]."
 
-**Examples:**
-- Backend: `Name: backend, Description: Express REST API, Stack: TypeScript, Express, PostgreSQL`
-- Frontend: `Name: frontend, Description: Next.js web app, Stack: Next.js, TypeScript, Tailwind`
-- LLM: `Name: llm-orchestrator, Description: Claude API integration, Stack: Node.js, TypeScript`
+**Example:** "Register this workspace. Name: backend. Description: Express REST API. Stack: TypeScript, Express, PostgreSQL."
 
-Once registered, you can immediately start sharing context across workspaces.
+Once registered, start sharing context with natural language prompts like:
+- "What's the frontend working on?"
+- "Tell the backend team our auth endpoint changed"
+- "What API changes should I know about?"
 
 ---
 
-## Available MCP Tools
+## Available Tools
 
-| Tool | Description |
-|------|-------------|
-| `register_workspace` | Register this workspace with name, description, stack, metadata |
-| `list_workspaces` | See all registered workspaces |
-| `get_workspace` | Get full details + notes for a workspace |
-| `post_note` | Post a note to another workspace |
-| `get_notes` | Read notes from a workspace (filter by tag/source) |
-| `broadcast_note` | Post a note to all workspaces at once |
-| `clear_notes` | Clear notes for a workspace |
+| Tool | Purpose |
+|------|---------|
+| `register_workspace` | Register a workspace |
+| `list_workspaces` | Discover all workspaces |
+| `get_workspace` | Get workspace details + notes |
+| `post_note` | Post a note to a workspace |
+| `get_notes` | Retrieve notes (with filtering) |
+| `broadcast_note` | Post to all workspaces |
+| `clear_notes` | Clear workspace notes |
 
-For detailed documentation on each tool, parameters, and workflows, see [`docs/tools.md`](docs/tools.md).
+**→ See [`docs/tools.md`](docs/tools.md) for detailed documentation, parameters, and examples.**
 
 ---
