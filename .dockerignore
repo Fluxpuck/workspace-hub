@@ -1,0 +1,8 @@
+node_modules/
+workspaces/
+.git/
+.vscode/
+.windsurf/
+.DS_Store
+*.md
+*.log
