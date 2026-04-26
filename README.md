@@ -28,7 +28,13 @@ cd ~/workspace-hub
 npm install
 ```
 
-### 2. Configure each workspace
+### 2. Build the Docker image
+
+```bash
+docker build -t mcp/workspace-hub .
+```
+
+### 3. Configure each workspace
 
 In each IDE, open **Settings → MCP Servers** and add (use the **same absolute path** in all workspaces):
 
@@ -36,12 +42,18 @@ In each IDE, open **Settings → MCP Servers** and add (use the **same absolute 
 {
   "mcpServers": {
     "workspace-hub": {
-      "command": "node",
-      "args": ["/absolute/path/to/workspace-hub-mcp/server.js"]
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-i",
+        "-v", "/absolute/path/to/workspace-hub-mcp/workspaces:/app/workspaces",
+        "mcp/workspace-hub"
+      ]
     }
   }
 }
 ```
+
+The container auto-starts when the editor connects and shares `workspaces/store.json` via a volume mount. Each container gets a random Docker name (e.g., `crazy_newton`).
 
 ## Get Started
 

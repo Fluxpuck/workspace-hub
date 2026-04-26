@@ -369,7 +369,9 @@ mcp-hub/
 ├── package.json                   # Dependencies and metadata
 ├── README.md                      # User-facing documentation
 ├── agent.md                       # This file
-├── mcp-config.example.json        # Example MCP configuration
+├── Dockerfile                     # Docker image definition
+├── docker-compose.yml             # Docker Compose config (for building)
+├── windsurf-mcp-config.example.json  # Example MCP configuration
 └── workspaces/
     └── store.json                 # Persistent workspace data (auto-created)
 ```
@@ -405,6 +407,7 @@ mcp-hub/
 git clone <repo> ~/workspace-hub
 cd ~/workspace-hub
 npm install
+docker build -t mcp/workspace-hub .
 ```
 
 ### MCP Configuration
@@ -415,14 +418,18 @@ In each IDE, add to **Settings → MCP Servers**:
 {
   "mcpServers": {
     "workspace-hub": {
-      "command": "node",
-      "args": ["/absolute/path/to/workspace-hub/server.js"]
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-i",
+        "-v", "/absolute/path/to/workspace-hub-mcp/workspaces:/app/workspaces",
+        "mcp/workspace-hub"
+      ]
     }
   }
 }
 ```
 
-**Critical:** Use the **same absolute path** in all workspaces so they all connect to the same `store.json`.
+**Critical:** Use the **same absolute path** for the volume mount in all workspaces so they all share the same `store.json`.
 
 ### Workspace Registration
 
@@ -460,9 +467,9 @@ In each workspace, ask your code agent to register once:
 ### Common Issues
 
 **Workspaces not connecting:**
-- Verify the absolute path in MCP configuration is correct
-- Check that `server.js` is executable: `chmod +x server.js`
-- Ensure Node.js is installed and in PATH
+- Verify the absolute path in the volume mount is correct
+- Ensure Docker is installed and running
+- Check for stale containers: `docker ps -a --filter ancestor=mcp/workspace-hub`
 
 **Notes not persisting:**
 - Check that `workspaces/` directory is writable
