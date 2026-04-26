@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "workspace-hub": {
+      "command": "node",
+      "args": [
+        "/ABSOLUTE/PATH/TO/workspace-hub-mcp/server.js"
+      ]
+    }
+  }
+}
