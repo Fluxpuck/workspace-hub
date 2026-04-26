@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Workspace Hub MCP** is a local Model Context Protocol (MCP) server that enables multiple Windsurf IDE workspaces to share context and communicate with each other. It acts as a central hub where workspaces can register themselves, post notes, and query information about other workspaces.
+**Workspace Hub MCP** is a local Model Context Protocol (MCP) server that enables multiple IDE workspaces to share context and communicate with each other. It acts as a central hub where workspaces can register themselves, post notes, and query information about other workspaces.
 
 **Core Problem Solved:** Multi-workspace coordination without manual context switching. A developer working across a backend, frontend, and LLM orchestrator can now have those workspaces communicate API changes, decisions, and TODOs automatically.
 
@@ -16,7 +16,7 @@
 ┌──────────────────┐         ┌──────────────────┐         ┌──────────────────┐
 │  Workspace A     │         │  Workspace B     │         │  Workspace C     │
 │  (backend)       │         │  (frontend)      │         │  (llm-orch)      │
-│  Windsurf IDE    │         │  Windsurf IDE    │         │  Windsurf IDE    │
+│  IDE             │         │  IDE             │         │  IDE             │
 └────────┬─────────┘         └────────┬─────────┘         └────────┬─────────┘
          │                            │                            │
          └────────────────┬───────────┴────────────────┬───────────┘
@@ -234,12 +234,12 @@ broadcast_note(
 ```
 
 ### Scenario 4: Natural Language Prompts
-Users don't need to call tools directly. They can talk naturally to Cascade:
+Users don't need to call tools directly. They can talk naturally to your coding agent:
 
-- *"What's the backend working on right now?"* → Cascade infers `get_workspace("backend")`
-- *"Tell the frontend team our auth endpoint changed"* → Cascade infers `post_note` with appropriate parameters
-- *"What API changes should I know about?"* → Cascade infers `get_notes` with `tag: "api-change"`
-- *"List all workspaces"* → Cascade calls `list_workspaces`
+- *"What's the backend working on right now?"* → coding agent infers `get_workspace("backend")`
+- *"Tell the frontend team our auth endpoint changed"* → coding agent infers `post_note` with appropriate parameters
+- *"What API changes should I know about?"* → coding agent infers `get_notes` with `tag: "api-change"`
+- *"List all workspaces"* → coding agent calls `list_workspaces`
 
 ---
 
@@ -261,7 +261,7 @@ mcp-hub/
 ├── package.json                   # Dependencies and metadata
 ├── README.md                      # User-facing documentation
 ├── agent.md                       # This file
-├── windsurf-mcp-config.example.json # Example MCP configuration
+├── mcp-config.example.json        # Example MCP configuration
 └── workspaces/
     └── store.json                 # Persistent workspace data (auto-created)
 ```
@@ -293,9 +293,9 @@ cd ~/workspace-hub
 npm install
 ```
 
-### Windsurf MCP Configuration
+### MCP Configuration
 
-In each Windsurf IDE, add to **Settings → MCP Servers**:
+In each IDE, add to **Settings → MCP Servers**:
 
 ```json
 {
@@ -312,7 +312,7 @@ In each Windsurf IDE, add to **Settings → MCP Servers**:
 
 ### Workspace Registration
 
-In each Windsurf workspace, ask Cascade to register once:
+In each workspace, ask your code agent to register once:
 
 > "Register this workspace with the workspace-hub MCP. Name: backend. Description: Express REST API. Stack: TypeScript, Express, PostgreSQL."
 
@@ -370,7 +370,7 @@ In each Windsurf workspace, ask Cascade to register once:
 
 ## Agent Capabilities & Recommendations
 
-### What Cascade Can Do
+### What Coding Agents Can Do
 
 - **Understand intent:** Parse natural language requests and map them to appropriate MCP tools
 - **Multi-step workflows:** Chain tool calls (e.g., list workspaces, then get details on one)

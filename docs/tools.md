@@ -304,13 +304,13 @@ broadcast_note(
 
 ### Scenario 4: Natural language prompts
 
-You don't need to call tools directly. Talk naturally to Cascade:
+You don't need to call tools directly. Talk naturally to your coding agent:
 
-- *"What's the backend working on right now?"* → Cascade calls `get_workspace("backend")`
-- *"Tell the frontend team our auth endpoint changed"* → Cascade calls `post_note` with appropriate parameters
-- *"What API changes should I know about?"* → Cascade calls `get_notes(tag: "api-change")`
-- *"List all workspaces"* → Cascade calls `list_workspaces`
-- *"Announce to everyone that we're switching to Bun"* → Cascade calls `broadcast_note`
+- *"What's the backend working on right now?"* → coding agent calls `get_workspace("backend")`
+- *"Tell the frontend team our auth endpoint changed"* → coding agent calls `post_note` with appropriate parameters
+- *"What API changes should I know about?"* → coding agent calls `get_notes(tag: "api-change")`
+- *"List all workspaces"* → coding agent calls `list_workspaces`
+- *"Announce to everyone that we're switching to Bun"* → coding agent calls `broadcast_note`
 
 ---
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Workspace Hub MCP Server
- * Allows multiple Windsurf IDE workspaces to share context with each other.
+ * Allows multiple IDE workspaces to share context with each other.
  *
  * Each workspace registers itself with a name + metadata.
  * Any workspace can then query others via MCP tools.

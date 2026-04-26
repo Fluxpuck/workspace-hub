@@ -1,22 +1,22 @@
 # Workspace Hub MCP
 
-A local MCP server that lets multiple Windsurf IDE workspaces share context with each other.
+A local MCP server that lets multiple IDE workspaces share context with each other.
 
 ## How it works
 
 ```
 ┌─────────────────┐     ┌─────────────────────────┐     ┌──────────────────────┐
 │  backend/       │     │                         │     │  frontend/           │
-│  Windsurf IDE   │────▶│   workspace-hub MCP     │◀────│  Windsurf IDE        │
+│  IDE            │────▶│   workspace-hub MCP     │◀────│  IDE                 │
 │                 │     │   (runs locally via     │     │                      │
 │  llm-orchestra/ │────▶│    stdio per-workspace) │     │                      │
-│  Windsurf IDE   │     │                         │     │                      │
+│  IDE            │     │                         │     │                      │
 └─────────────────┘     └─────────────────────────┘     └──────────────────────┘
                                stores context in
                            workspaces/store.json
 ```
 
-Each Windsurf connects to the same MCP server binary. The server persists shared state to a JSON file on disk.
+Each IDE connects to the same MCP server binary. The server persists shared state to a JSON file on disk.
 
 ## Setup
 
@@ -28,9 +28,9 @@ cd ~/workspace-hub
 npm install
 ```
 
-### 2. Configure each Windsurf workspace
+### 2. Configure each workspace
 
-In each Windsurf IDE, open **Settings → MCP Servers** and add:
+In each IDE, open **Settings → MCP Servers** and add:
 
 ```json
 {
@@ -47,13 +47,13 @@ In each Windsurf IDE, open **Settings → MCP Servers** and add:
 
 ### 3. Register each workspace (do once per workspace)
 
-In your **backend** Windsurf, tell Cascade:
-> "Register this workspace with the workspace-hub MCP. Name: backend. Description: Express REST API for Sero. Stack: TypeScript, Express, PostgreSQL."
+In your **backend** workspace, tell your coding agent:
+> "Register this workspace with the workspace-hub MCP. Name: backend. Description: Express REST API. Stack: TypeScript, Express, PostgreSQL."
 
-In your **frontend** Windsurf:
+In your **frontend** workspace:
 > "Register this workspace. Name: frontend. Description: Next.js web app. Stack: Next.js, TypeScript, Tailwind."
 
-In your **llm-orchestrator** Windsurf:
+In your **llm-orchestrator** workspace:
 > "Register this workspace. Name: llm-orchestrator. Description: Claude API integration and prompt chains."
 
 ---
@@ -75,7 +75,7 @@ In your **llm-orchestrator** Windsurf:
 ## Example workflows
 
 ### Backend tells frontend about an API change
-In the **backend** Windsurf, Cascade can:
+In the **backend** workspace, your coding agent can:
 ```
 post_note(
   workspace: "frontend",
@@ -86,7 +86,7 @@ post_note(
 ```
 
 ### Frontend asks about the backend
-In the **frontend** Windsurf, Cascade can:
+In the **frontend** workspace, your coding agent can:
 ```
 get_workspace(name: "backend")
 get_notes(workspace: "backend", tag: "api-change")
@@ -104,12 +104,12 @@ broadcast_note(
 
 ### Natural language prompts that trigger MCP
 
-You can just talk to Cascade naturally:
+You can just talk to coding agent naturally:
 
-- *"What's the backend working on right now?"* → Cascade calls `get_workspace("backend")`
-- *"Tell the frontend team our auth endpoint changed"* → Cascade calls `post_note`
-- *"What API changes should I know about?"* → Cascade calls `get_notes(tag: "api-change")`
-- *"Announce to all workspaces that we're switching to Bun"* → Cascade calls `broadcast_note`
+- *"What's the backend working on right now?"* → coding agent calls `get_workspace("backend")`
+- *"Tell the frontend team our auth endpoint changed"* → coding agent calls `post_note`
+- *"What API changes should I know about?"* → coding agent calls `get_notes(tag: "api-change")`
+- *"Announce to all workspaces that we're switching to Bun"* → coding agent calls `broadcast_note`
 
 ---
 
@@ -126,7 +126,7 @@ You can just talk to Cascade naturally:
 
 ## Extending this PoC
 
-- **Add HTTP transport** so workspaces on different machines can connect (e.g. your Sero servers)
+- **Add HTTP transport** so workspaces on different machines can connect (e.g. your servers)
 - **Add TTL to notes** so stale context auto-expires
 - **Webhook notifications** — POST to a Discord channel when a note is posted
 - **File sharing** — allow attaching small JSON schemas or OpenAPI snippets to a workspace
