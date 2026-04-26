@@ -1,6 +1,6 @@
 import { z } from "zod/v3";
 import { loadStore, saveStore } from "../lib/store.js";
-import { generateTaskId, ensureTasks, processPendingTasksViaSampling } from "../lib/task-helpers.js";
+import { generateTaskId, ensureTasks, processPendingTasksViaSampling, withTaskNotice } from "../lib/task-helpers.js";
 
 export function registerTaskTools(server) {
   // ── Tool: post_task ──────────────────────────────────────────────────────────
@@ -12,7 +12,7 @@ export function registerTaskTools(server) {
       question: z.string().describe("The question or lookup request — be specific"),
       from: z.string().describe("Your workspace name (the one asking)"),
     },
-    async ({ target, question, from }) => {
+    withTaskNotice(async ({ target, question, from }) => {
       const store = loadStore();
       if (!store.workspaces[target]) {
         return { content: [{ type: "text", text: `❌ Workspace "${target}" not found. Register it first.` }] };
@@ -33,7 +33,7 @@ export function registerTaskTools(server) {
       return {
         content: [{ type: "text", text: `✅ Task ${task.id} posted to "${target}". The next time their agent interacts with the hub, it will attempt to auto-answer via sampling.` }],
       };
-    }
+    })
   );
 
   // ── Tool: get_pending_tasks ─────────────────────────────────────────────────
@@ -43,7 +43,7 @@ export function registerTaskTools(server) {
     {
       workspace: z.string().describe("Your workspace name"),
     },
-    async ({ workspace }) => {
+    withTaskNotice(async ({ workspace }) => {
       const store = loadStore();
       const ws = store.workspaces[workspace];
       if (!ws) {
@@ -72,7 +72,7 @@ export function registerTaskTools(server) {
       return {
         content: [{ type: "text", text: samplingNotice ? mainText + samplingNotice : mainText }],
       };
-    }
+    })
   );
 
   // ── Tool: respond_to_task ───────────────────────────────────────────────────
@@ -83,7 +83,7 @@ export function registerTaskTools(server) {
       task_id: z.string().describe("The task ID to respond to"),
       response: z.string().describe("Your response — be specific and include concrete details"),
     },
-    async ({ task_id, response }) => {
+    withTaskNotice(async ({ task_id, response }) => {
       const store = loadStore();
       for (const ws of Object.values(store.workspaces)) {
         ensureTasks(ws);
@@ -103,7 +103,7 @@ export function registerTaskTools(server) {
         }
       }
       return { content: [{ type: "text", text: `❌ Task "${task_id}" not found.` }] };
-    }
+    })
   );
 
   // ── Tool: get_task_responses ────────────────────────────────────────────────
@@ -114,7 +114,7 @@ export function registerTaskTools(server) {
       from: z.string().describe("Your workspace name (the one that posted the tasks)"),
       status: z.enum(["pending", "completed", "failed"]).optional().describe("Filter by task status (default: all)"),
     },
-    async ({ from, status }) => {
+    withTaskNotice(async ({ from, status }) => {
       const store = loadStore();
       const allTasks = [];
       for (const [wsName, ws] of Object.entries(store.workspaces)) {
@@ -136,6 +136,6 @@ export function registerTaskTools(server) {
       return {
         content: [{ type: "text", text: lines.join("\n\n---\n\n") }],
       };
-    }
+    })
   );
 }

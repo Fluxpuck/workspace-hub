@@ -1,5 +1,6 @@
 import { z } from "zod/v3";
 import { loadStore, saveStore } from "../lib/store.js";
+import { withTaskNotice } from "../lib/task-helpers.js";
 
 export function registerNoteTools(server) {
   // ── Tool: post_note ──────────────────────────────────────────────────────────
@@ -12,7 +13,7 @@ export function registerNoteTools(server) {
       tag: z.string().optional().describe("Optional tag: 'api-change', 'decision', 'todo', 'bug', etc."),
       from: z.string().optional().describe("Name of the workspace posting this note"),
     },
-    async ({ workspace, content, tag, from }) => {
+    withTaskNotice(async ({ workspace, content, tag, from }) => {
       const store = loadStore();
       if (!store.workspaces[workspace]) {
         return { content: [{ type: "text", text: `❌ Workspace "${workspace}" not found. Register it first.` }] };
@@ -29,7 +30,7 @@ export function registerNoteTools(server) {
       return {
         content: [{ type: "text", text: `✅ Note posted to "${workspace}".` }],
       };
-    }
+    })
   );
 
   // ── Tool: get_notes ──────────────────────────────────────────────────────────
@@ -42,7 +43,7 @@ export function registerNoteTools(server) {
       from: z.string().optional().describe("Filter by source workspace"),
       limit: z.number().optional().describe("Max number of notes to return (default: 20)"),
     },
-    async ({ workspace, tag, from, limit = 20 }) => {
+    withTaskNotice(async ({ workspace, tag, from, limit = 20 }) => {
       const store = loadStore();
       const ws = store.workspaces[workspace];
       if (!ws) {
@@ -60,7 +61,7 @@ export function registerNoteTools(server) {
         `[${n.tag}] ${n.timestamp} (from: ${n.from})\n${n.content}`
       );
       return { content: [{ type: "text", text: lines.join("\n\n---\n\n") }] };
-    }
+    })
   );
 
   // ── Tool: broadcast_note ─────────────────────────────────────────────────────
@@ -73,7 +74,7 @@ export function registerNoteTools(server) {
       from: z.string().optional().describe("Source workspace name"),
       exclude: z.array(z.string()).optional().describe("Workspace names to skip"),
     },
-    async ({ content, tag, from, exclude = [] }) => {
+    withTaskNotice(async ({ content, tag, from, exclude = [] }) => {
       const store = loadStore();
       const targets = Object.keys(store.workspaces).filter((n) => !exclude.includes(n));
       if (targets.length === 0) {
@@ -95,7 +96,7 @@ export function registerNoteTools(server) {
       return {
         content: [{ type: "text", text: `✅ Broadcasted to: ${targets.join(", ")}` }],
       };
-    }
+    })
   );
 
   // ── Tool: clear_notes ───────────────────────────────────────────────────────
@@ -105,7 +106,7 @@ export function registerNoteTools(server) {
     {
       workspace: z.string(),
     },
-    async ({ workspace }) => {
+    withTaskNotice(async ({ workspace }) => {
       const store = loadStore();
       if (!store.workspaces[workspace]) {
         return { content: [{ type: "text", text: `❌ Workspace "${workspace}" not found.` }] };
@@ -114,6 +115,6 @@ export function registerNoteTools(server) {
       store.workspaces[workspace].updated_at = new Date().toISOString();
       saveStore(store);
       return { content: [{ type: "text", text: `✅ Notes cleared for "${workspace}".` }] };
-    }
+    })
   );
 }

@@ -1,5 +1,6 @@
 import { z } from "zod/v3";
 import { loadStore, saveStore } from "../lib/store.js";
+import { withTaskNotice } from "../lib/task-helpers.js";
 
 export function registerWorkspaceTools(server) {
   // ── Tool: register_workspace ─────────────────────────────────────────────────
@@ -12,7 +13,7 @@ export function registerWorkspaceTools(server) {
       tech_stack: z.array(z.string()).optional().describe("Technologies used, e.g. ['Express', 'TypeScript', 'PostgreSQL']"),
       metadata: z.record(z.string()).optional().describe("Any extra key/value pairs to share (repo URL, port, etc.)"),
     },
-    async ({ name, description, tech_stack, metadata }) => {
+    withTaskNotice(async ({ name, description, tech_stack, metadata }) => {
       const store = loadStore();
       store.workspaces[name] = {
         name,
@@ -28,7 +29,7 @@ export function registerWorkspaceTools(server) {
       return {
         content: [{ type: "text", text: `✅ Workspace "${name}" registered successfully.` }],
       };
-    }
+    })
   );
 
   // ── Tool: list_workspaces ────────────────────────────────────────────────────
@@ -36,7 +37,7 @@ export function registerWorkspaceTools(server) {
     "list_workspaces",
     "List all registered workspaces and their descriptions",
     {},
-    async () => {
+    withTaskNotice(async () => {
       const store = loadStore();
       const workspaces = Object.values(store.workspaces);
       if (workspaces.length === 0) {
@@ -46,7 +47,7 @@ export function registerWorkspaceTools(server) {
         `• **${w.name}** — ${w.description}\n  Stack: ${w.tech_stack.join(", ") || "unspecified"}\n  Last updated: ${w.updated_at}`
       );
       return { content: [{ type: "text", text: lines.join("\n\n") }] };
-    }
+    })
   );
 
   // ── Tool: get_workspace ──────────────────────────────────────────────────────
@@ -56,7 +57,7 @@ export function registerWorkspaceTools(server) {
     {
       name: z.string().describe("Name of the workspace to retrieve"),
     },
-    async ({ name }) => {
+    withTaskNotice(async ({ name }) => {
       const store = loadStore();
       const ws = store.workspaces[name];
       if (!ws) {
@@ -79,6 +80,6 @@ export function registerWorkspaceTools(server) {
         `\nNotes:\n${notesSection}`,
       ].join("\n");
       return { content: [{ type: "text", text }] };
-    }
+    })
   );
 }
