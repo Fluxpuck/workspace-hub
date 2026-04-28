@@ -10,15 +10,15 @@
  * All workspaces connect to the same process and share in-memory state.
  */
 
-import { randomUUID } from "node:crypto";
+import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
-import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
-import { registerWorkspaceTools } from "./tools/workspace-tools.js";
+import { randomUUID } from "node:crypto";
+import { unbindSession } from "./lib/sessions.js";
 import { registerNoteTools } from "./tools/note-tools.js";
 import { registerTaskTools } from "./tools/task-tools.js";
-import { unbindSession } from "./lib/sessions.js";
+import { registerWorkspaceTools } from "./tools/workspace-tools.js";
 
 // ─── Server factory ─────────────────────────────────────────────────────────
 
@@ -40,8 +40,6 @@ function createServer() {
 // ─── HTTP app ────────────────────────────────────────────────────────────────
 
 const app = createMcpExpressApp();
-
-/** @type {Map<string, StreamableHTTPServerTransport>} */
 const transports = new Map();
 
 app.post("/mcp", async (req, res) => {
