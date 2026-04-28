@@ -1,0 +1,62 @@
+name: Publish npm Package
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version tag to publish (e.g. v1.2.3)"
+        required: true
+
+# Least-privilege: only read access to the repository contents is needed.
+# npm publishing is authenticated via NODE_AUTH_TOKEN (NPM_TOKEN secret), not GITHUB_TOKEN.
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+
+      # Determine the version from the tag (strip the leading "v").
+      # On a tag push, github.ref_name is the tag (e.g. "v1.2.3").
+      # On a manual dispatch, we use the provided input.
+      - name: Resolve version from tag
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            RAW_TAG="${{ github.event.inputs.tag }}"
+          else
+            RAW_TAG="${{ github.ref_name }}"
+          fi
+          VERSION="${RAW_TAG#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      # Strategy: update launcher/package.json to the tag version before publishing.
+      # This ensures the published version always matches the git tag, regardless of
+      # what was committed in package.json. --no-git-tag-version prevents npm from
+      # creating an additional git commit or tag inside the workflow.
+      - name: Set package version to tag version
+        working-directory: launcher
+        run: npm version "${{ steps.version.outputs.version }}" --no-git-tag-version
+
+      - name: Install dependencies
+        working-directory: launcher
+        run: npm ci
+
+      - name: Publish to npm
+        working-directory: launcher
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
