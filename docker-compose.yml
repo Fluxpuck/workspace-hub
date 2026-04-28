@@ -1,10 +1,15 @@
 services:
   workspace-hub:
-    build: .
-    image: mcp/workspace-hub
+    image: ghcr.io/fluxpuck/workspace-hub:latest
     container_name: workspace-hub
     ports:
       - "4440:4440"
     volumes:
-      - ./data:/app/data
+      - workspace-hub-data:/app/data
     restart: unless-stopped
+    # Uncomment to change the port the server listens on:
+    # environment:
+    #   - PORT=4440
+
+volumes:
+  workspace-hub-data:

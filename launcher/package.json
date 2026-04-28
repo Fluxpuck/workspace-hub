@@ -1,0 +1,34 @@
+{
+  "name": "workspace-hub-docker",
+  "version": "1.0.0",
+  "description": "A tiny npm launcher for the workspace-hub MCP server Docker image.",
+  "author": "Mathijs van der Kuijp <mathijsvanderkuijp@gmail.com>",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Fluxpuck/workspace-hub.git",
+    "directory": "launcher"
+  },
+  "bugs": {
+    "url": "https://github.com/Fluxpuck/workspace-hub/issues"
+  },
+  "homepage": "https://github.com/Fluxpuck/workspace-hub#readme",
+  "type": "module",
+  "bin": {
+    "workspace-hub-docker": "./bin/workspace-hub-docker.js"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "keywords": [
+    "mcp",
+    "workspace-hub",
+    "docker",
+    "launcher",
+    "model-context-protocol"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -23,32 +23,56 @@ A single HTTP server runs locally. All IDE workspaces connect to it over the MCP
 
 ## Setup
 
-### 1. Install
+### 1. Start the server
+
+The recommended way to run workspace-hub is with the prebuilt Docker image from GHCR.
+
+**Quick start (no persistence):**
 
 ```bash
-git clone <this repo> ~/workspace-hub
-cd ~/workspace-hub
-yarn install
+docker run -p 4440:4440 ghcr.io/fluxpuck/workspace-hub:latest
 ```
 
-### 2. Start the server
-
-Run directly:
+**Recommended (with named volume for persistence):**
 
 ```bash
-node server.js
+docker run -d \
+  --name workspace-hub \
+  --restart unless-stopped \
+  -p 4440:4440 \
+  -v workspace-hub-data:/app/data \
+  ghcr.io/fluxpuck/workspace-hub:latest
 ```
 
-Or with Docker:
+**Custom port** (set `PORT` to change the internal port; use `-p <host>:<container>` accordingly):
 
 ```bash
-docker build -t mcp/workspace-hub .
-docker run -p 4440:4440 mcp/workspace-hub
+docker run -d \
+  --name workspace-hub \
+  --restart unless-stopped \
+  -p 9000:9000 \
+  -v workspace-hub-data:/app/data \
+  -e PORT=9000 \
+  ghcr.io/fluxpuck/workspace-hub:latest
 ```
 
-The server listens on `http://localhost:4440/mcp` by default. Set the `PORT` environment variable to change it.
+**Using Docker Compose:**
 
-### 3. Configure each workspace
+```bash
+docker compose up -d
+```
+
+The bundled `docker-compose.yml` uses `ghcr.io/fluxpuck/workspace-hub:latest` and the `workspace-hub-data` named volume automatically.
+
+**Using the npm launcher** (see [npm launcher](#npm-launcher) section below):
+
+```bash
+npx workspace-hub-docker up
+```
+
+The server listens on `http://localhost:4440/mcp` by default.
+
+### 2. Configure each workspace
 
 In each IDE, open **Settings → MCP Servers** and add:
 
@@ -63,6 +87,17 @@ In each IDE, open **Settings → MCP Servers** and add:
 ```
 
 All workspaces connect to the same server. No volume mounts or per-workspace containers needed.
+
+### 3. Run from source (optional)
+
+If you prefer to run without Docker:
+
+```bash
+git clone https://github.com/Fluxpuck/workspace-hub ~/workspace-hub
+cd ~/workspace-hub
+yarn install
+node server.js
+```
 
 ## Get Started
 
@@ -132,5 +167,49 @@ Workspace A                              Workspace B
 - "Ask the backend what database they use" → `post_task`
 - "Check if any workspaces need something from me" → `get_pending_tasks`
 - "Did the backend answer my question yet?" → `get_task_responses`
+
+---
+
+## npm Launcher
+
+The `workspace-hub-docker` npm package is a tiny CLI launcher that automates the Docker pull/run lifecycle.
+
+### Install globally
+
+```bash
+npm install -g workspace-hub-docker
+```
+
+Or run directly with npx (no install needed):
+
+```bash
+npx workspace-hub-docker up
+```
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `workspace-hub-docker up` | Pull the latest image and start the container |
+| `workspace-hub-docker down` | Stop and remove the container |
+| `workspace-hub-docker logs` | Tail container logs |
+| `workspace-hub-docker status` | Show container status |
+
+### Environment variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `4440` | Port the server listens on inside the container |
+| `HOST_PORT` | same as `PORT` | Host port exposed to your machine |
+
+Example with a custom host port:
+
+```bash
+HOST_PORT=9000 workspace-hub-docker up
+```
+
+State is automatically saved in a named Docker volume (`workspace-hub-data`) across restarts.
+
+See [`launcher/README.md`](launcher/README.md) for full documentation and publishing instructions.
 
 ---

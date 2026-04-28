@@ -36,3 +36,6 @@ data/
 .env
 .env.local
 .env.*.local
+
+# Launcher
+launcher/node_modules/
