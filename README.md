@@ -26,6 +26,7 @@ A single HTTP server runs locally. All IDE workspaces connect to it over the MCP
 ### 1. Start the server
 
 The recommended way to run workspace-hub is with the prebuilt Docker image from GHCR.
+The `:latest` tag is updated on every versioned release (`vX.Y.Z`).
 
 **Quick start (no persistence):**
 
